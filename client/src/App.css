@@ -1,0 +1,22 @@
+/* App-specific styles */
+.min-h-screen {
+  min-height: 100vh;
+  width: 100%;
+}
+
+.flex-grow {
+  flex-grow: 1;
+}
+
+/* Ensure the app takes full width */
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.app-container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+} 
