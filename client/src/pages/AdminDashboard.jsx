@@ -26,6 +26,7 @@ const AdminDashboard = () => {
   const [productUpdateError, setProductUpdateError] = useState(null);
   const [userUpdateLoading, setUserUpdateLoading] = useState(false);
   const [userUpdateError, setUserUpdateError] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null); // For order details modal
 
   // Check if user is admin
   if (!isAuthenticated || user?.role !== 'admin') {
@@ -58,15 +59,18 @@ const AdminDashboard = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/orders', {
+      const response = await fetch('http://localhost:5000/api/orders/all', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
         const data = await response.json();
+        console.log('Fetched orders data:', data); // Debugging line
         // Handle paginated response
         setOrders(data.orders || data);
+      } else {
+        console.error('Failed to fetch orders:', response.status, await response.text());
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -287,20 +291,50 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        const updatedOrder = await response.json();
+        // Update the state to reflect the change immediately
+        setOrders(currentOrders => 
+          currentOrders.map(order => 
+            order._id === orderId ? updatedOrder : order
+          )
+        );
+        alert('Order status updated successfully!');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to update status: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('An error occurred while updating status.');
+    }
+  };
+
   const renderOverview = () => (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div className="bg-blue-500 text-white p-6 rounded-lg shadow">
+      <button onClick={() => setActiveTab('products')} className="text-left bg-blue-500 text-white p-6 rounded-lg shadow hover:bg-blue-600 transition-colors">
         <h3 className="text-lg font-semibold mb-2">Total Products</h3>
         <p className="text-3xl font-bold">{products.length}</p>
-      </div>
-      <div className="bg-green-500 text-white p-6 rounded-lg shadow">
+      </button>
+      <button onClick={() => setActiveTab('orders')} className="text-left bg-green-500 text-white p-6 rounded-lg shadow hover:bg-green-600 transition-colors">
         <h3 className="text-lg font-semibold mb-2">Total Orders</h3>
         <p className="text-3xl font-bold">{orders.length}</p>
-      </div>
-      <div className="bg-purple-500 text-white p-6 rounded-lg shadow">
+      </button>
+      <button onClick={() => setActiveTab('users')} className="text-left bg-purple-500 text-white p-6 rounded-lg shadow hover:bg-purple-600 transition-colors">
         <h3 className="text-lg font-semibold mb-2">Total Users</h3>
         <p className="text-3xl font-bold">{users.length}</p>
-      </div>
+      </button>
     </div>
   );
 
@@ -427,18 +461,29 @@ const AdminDashboard = () => {
               <tr key={order._id} className="border-b">
                 <td className="px-4 py-2">{order._id}</td>
                 <td className="px-4 py-2">{order.user?.name}</td>
-                <td className="px-4 py-2">₹{order.total}</td>
+                <td className="px-4 py-2">₹{order.totalAmount}</td>
                 <td className="px-4 py-2">
-                  <span className={`px-2 py-1 rounded text-sm ${
-                    order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {order.status}
-                  </span>
+                  <select
+                    value={order.status}
+                    onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                    className={`p-1 rounded text-sm border-2 ${
+                      order.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                      order.status === 'shipped' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                      order.status === 'delivered' ? 'bg-green-100 text-green-800 border-green-200' :
+                      'bg-red-100 text-red-800 border-red-200'
+                    }`}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="shipped">Shipped</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
                 </td>
                 <td className="px-4 py-2">
-                  <button className="bg-blue-500 text-white px-2 py-1 rounded text-sm">
+                  <button 
+                    onClick={() => setSelectedOrder(order)}
+                    className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
+                  >
                     View Details
                   </button>
                 </td>
@@ -497,6 +542,97 @@ const AdminDashboard = () => {
     </div>
   );
 
+  const renderOrderDetailsModal = () => {
+    if (!selectedOrder) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+        <div className="bg-white p-8 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-2xl font-bold text-gray-800">Order Details</h3>
+            <button
+              onClick={() => setSelectedOrder(null)}
+              className="text-gray-500 hover:text-gray-800"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+          
+          <div className="space-y-6">
+            {/* Core Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="font-semibold text-gray-600">Order ID:</p>
+                <p className="text-gray-800 font-mono break-all">{selectedOrder._id}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="font-semibold text-gray-600">Customer:</p>
+                <p className="text-gray-800">{selectedOrder.user?.name || 'N/A'} ({selectedOrder.user?.email || 'N/A'})</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="font-semibold text-gray-600">Order Date:</p>
+                <p className="text-gray-800">{new Date(selectedOrder.createdAt).toLocaleString()}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="font-semibold text-gray-600">Total Amount:</p>
+                <p className="text-2xl font-bold text-green-600">₹{selectedOrder.totalAmount.toLocaleString()}</p>
+              </div>
+            </div>
+
+            {/* Items Purchased */}
+            <div>
+              <h4 className="text-lg font-semibold text-gray-700 mb-2">Items Purchased</h4>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="min-w-full">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {selectedOrder.items.map(item => (
+                      <tr key={item.product?._id || item._id}>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">{item.product?.name || 'Product not found'}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">₹{item.price?.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Payment & Shipping */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-lg font-semibold text-gray-700 mb-2">Payment Details</h4>
+                <div className="bg-gray-50 p-4 rounded-lg text-sm space-y-2">
+                  <p><strong className="text-gray-600">Method:</strong> {selectedOrder.paymentMethod}</p>
+                  {selectedOrder.paymentDetails && (
+                    <>
+                      <p><strong className="text-gray-600">Payment ID:</strong> <span className="font-mono break-all">{selectedOrder.paymentDetails.razorpay_payment_id}</span></p>
+                      <p><strong className="text-gray-600">Order ID:</strong> <span className="font-mono break-all">{selectedOrder.paymentDetails.razorpay_order_id}</span></p>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-700 mb-2">Shipping Address</h4>
+                <div className="bg-gray-50 p-4 rounded-lg text-sm space-y-1">
+                  <p>{selectedOrder.shippingAddress.street}</p>
+                  <p>{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.postalCode}</p>
+                  <p>{selectedOrder.shippingAddress.country}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
@@ -534,6 +670,9 @@ const AdminDashboard = () => {
       {activeTab === 'products' && renderProducts()}
       {activeTab === 'orders' && renderOrders()}
       {activeTab === 'users' && renderUsers()}
+
+      {/* Modals */}
+      {renderOrderDetailsModal()}
 
       {/* Edit Product Modal */}
       {showEditProductModal && editingProduct && (

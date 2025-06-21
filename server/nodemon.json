@@ -1,0 +1,6 @@
+{
+  "events": {
+    "restart": "npx kill-port 5000"
+  },
+  "delay": "2500"
+} 

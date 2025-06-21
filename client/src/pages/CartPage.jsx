@@ -75,9 +75,51 @@ const CartPage = () => {
       name: 'E-Commerce Store',
       description: 'Order Payment',
       order_id: order.id,
-      handler: function (response) {
-        alert('Payment successful! Payment ID: ' + response.razorpay_payment_id);
-        // TODO: You can verify payment on the backend here
+      handler: async function (response) {
+        // Payment was successful, now create the order in our database
+        try {
+          const orderData = {
+            items: cart.map(item => ({
+              product: item.product._id,
+              quantity: item.quantity,
+              price: item.product.price,
+            })),
+            shippingAddress: { // Using placeholder address for now
+              street: '123 Test St',
+              city: 'Testville',
+              postalCode: '12345',
+              country: 'IN',
+            },
+            paymentMethod: 'Razorpay',
+            paymentDetails: {
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+            }
+          };
+
+          const createOrderRes = await fetch('http://localhost:5000/api/orders', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify(orderData),
+          });
+
+          if (createOrderRes.ok) {
+            const newOrder = await createOrderRes.json();
+            alert(`Payment successful! Order created with ID: ${newOrder._id}`);
+            clearCart();
+            navigate('/profile'); // Redirect to profile/orders page
+          } else {
+            const errorData = await createOrderRes.json();
+            alert(`Failed to create order: ${errorData.error || 'Unknown error'}`);
+          }
+        } catch (error) {
+          console.error('Error creating order:', error);
+          alert('An error occurred while creating your order.');
+        }
       },
       prefill: {
         // Optionally fill with user info

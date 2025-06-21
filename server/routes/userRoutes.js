@@ -29,33 +29,51 @@ router.post('/login', async (req, res) => {
     }
     
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback_secret');
-    res.json({ user, token });
+    res.json({ token, user: { _id: user._id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
 // Get user profile
 router.get('/profile', auth, async (req, res) => {
-  res.json(req.user);
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Update user profile
-router.patch('/profile', auth, async (req, res) => {
-  const updates = Object.keys(req.body);
-  const allowedUpdates = ['name', 'email', 'password', 'address'];
-  const isValidOperation = updates.every(update => allowedUpdates.includes(update));
-
-  if (!isValidOperation) {
-    return res.status(400).json({ error: 'Invalid updates!' });
-  }
-
+router.put('/profile', auth, async (req, res) => {
   try {
-    updates.forEach(update => req.user[update] = req.body[update]);
-    await req.user.save();
-    res.json(req.user);
+    const { name, email, address } = req.body;
+    
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.address = address || user.address;
+
+    const updatedUser = await user.save();
+
+    res.json({
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      address: updatedUser.address,
+      createdAt: updatedUser.createdAt
+    });
+
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('Error updating profile:', error);
+    res.status(500).json({ message: 'Server error while updating profile' });
   }
 });
 
