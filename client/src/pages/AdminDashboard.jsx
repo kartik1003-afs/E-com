@@ -42,7 +42,7 @@ const AdminDashboard = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/products', {
+      const response = await fetch('https://e-com-5-y30p.onrender.com/api/products', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -59,7 +59,7 @@ const AdminDashboard = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/orders/all', {
+      const response = await fetch('https://e-com-5-y30p.onrender.com/api/orders/all', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -79,7 +79,7 @@ const AdminDashboard = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/users/all', {
+      const response = await fetch('https://e-com-5-y30p.onrender.com/api/users/all', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -96,7 +96,7 @@ const AdminDashboard = () => {
   const handleAddProduct = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/api/products', {
+      const response = await fetch('https://e-com-5-y30p.onrender.com/api/products', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -162,7 +162,7 @@ const AdminDashboard = () => {
         }
       });
       console.log('Updating product:', payload);
-      const response = await fetch(`http://localhost:5000/api/products/${editingProduct._id}`, {
+      const response = await fetch(`https://e-com-5-y30p.onrender.com/api/products/${editingProduct._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -196,7 +196,7 @@ const AdminDashboard = () => {
     }
     
     try {
-      const response = await fetch(`http://localhost:5000/api/products/${productId}`, {
+      const response = await fetch(`https://e-com-5-y30p.onrender.com/api/products/${productId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -238,7 +238,7 @@ const AdminDashboard = () => {
         role: editingUser.role || 'user'
       };
       console.log('Updating user:', payload);
-      const response = await fetch(`http://localhost:5000/api/users/${editingUser._id}`, {
+      const response = await fetch(`https://e-com-5-y30p.onrender.com/api/users/${editingUser._id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -272,7 +272,7 @@ const AdminDashboard = () => {
     }
     
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
+      const response = await fetch(`https://e-com-5-y30p.onrender.com/api/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -293,7 +293,7 @@ const AdminDashboard = () => {
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+      const response = await fetch(`https://e-com-5-y30p.onrender.com/api/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

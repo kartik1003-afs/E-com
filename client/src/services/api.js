@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '../config/api';
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: 'https://e-com-5-y30p.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },

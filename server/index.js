@@ -13,10 +13,23 @@ const orderRoutes = require('./routes/orderRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 
-const app = express();
+
 
 // Middleware
-app.use(cors());
+
+
+
+
+
+const app = express();
+
+app.use(cors({
+  origin: "https://incandescent-praline-a05095.netlify.app", // your Netlify domain
+  credentials: true // if you use cookies or sessions
+}));
+
+
+
 app.use(express.json());
 
 // Database connection

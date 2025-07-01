@@ -61,7 +61,7 @@ const CartPage = () => {
     }
 
     // Call backend to create order
-    const orderRes = await fetch('http://localhost:5000/api/payment/create-order', {
+    const orderRes = await fetch('https://e-com-5-y30p.onrender.com/api/payment/create-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount: cartTotal }) // cartTotal in rupees
@@ -85,10 +85,10 @@ const CartPage = () => {
               price: item.product.price,
             })),
             shippingAddress: { // Using placeholder address for now
-              street: '123 Test St',
-              city: 'Testville',
-              postalCode: '12345',
-              country: 'IN',
+              street: '308 Negra Arroyo Lane',
+              city: 'Albuquerque',
+              postalCode: '87104',
+              country: 'New Maxico',
             },
             paymentMethod: 'Razorpay',
             paymentDetails: {
@@ -98,7 +98,7 @@ const CartPage = () => {
             }
           };
 
-          const createOrderRes = await fetch('http://localhost:5000/api/orders', {
+          const createOrderRes = await fetch('https://e-com-5-y30p.onrender.com/api/orders', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
