@@ -24,9 +24,14 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const app = express();
 
 app.use(cors({
-  origin: "https://incandescent-praline-a05095.netlify.app", // your Netlify domain
+  origin: [
+    "https://incandescent-praline-a05095.netlify.app",
+    "http://localhost:5173"
+  ], // allow Netlify and local dev
   credentials: true // if you use cookies or sessions
 }));
+
+
 
 
 
