@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { API_ENDPOINTS } from '../config/api';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -7,6 +6,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 second timeout
 });
 
 // Request interceptor to add auth token
@@ -27,9 +27,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Only redirect on 401 if it's not a login/register request
+    if (error.response?.status === 401 && 
+        !error.config?.url?.includes('/login') && 
+        !error.config?.url?.includes('/register')) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Don't force redirect here, let components handle it
+      console.warn('Authentication expired');
     }
     return Promise.reject(error);
   }
@@ -40,7 +44,7 @@ export const authService = {
   register: (userData) => api.post('/users/register', userData),
   login: (credentials) => api.post('/users/login', credentials),
   getProfile: () => api.get('/users/profile'),
-  updateProfile: (userData) => api.patch('/users/profile', userData),
+  updateProfile: (userData) => api.put('/users/profile', userData),
 };
 
 // Product services
@@ -66,9 +70,9 @@ export const cartService = {
 // Order services
 export const orderService = {
   createOrder: (orderData) => api.post('/orders', orderData),
-  getOrders: () => api.get('/orders'),
+  getOrders: () => api.get('/orders/my-orders'),
   getOrderById: (id) => api.get(`/orders/${id}`),
   updateOrderStatus: (id, status) => api.put(`/orders/${id}/status`, { status }),
 };
 
-export default api; 
+export default api;

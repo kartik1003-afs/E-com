@@ -27,7 +27,9 @@ export const AuthProvider = ({ children }) => {
         const response = await authService.getProfile();
         setUser(response.data);
       } catch (err) {
+        console.error('Auth check failed:', err);
         localStorage.removeItem('token');
+        setUser(null);
       }
     }
     setLoading(false);
@@ -42,8 +44,9 @@ export const AuthProvider = ({ children }) => {
       setUser(user);
       return { success: true };
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
-      return { success: false, error: err.response?.data?.message };
+      const errorMessage = err.response?.data?.message || 'Login failed';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     }
   };
 
@@ -56,14 +59,16 @@ export const AuthProvider = ({ children }) => {
       setUser(user);
       return { success: true };
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
-      return { success: false, error: err.response?.data?.message };
+      const errorMessage = err.response?.data?.message || 'Registration failed';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
+    setError(null);
   };
 
   const updateProfile = async (userData) => {
@@ -73,8 +78,9 @@ export const AuthProvider = ({ children }) => {
       setUser(response.data);
       return { success: true };
     } catch (err) {
-      setError(err.response?.data?.message || 'Profile update failed');
-      return { success: false, error: err.response?.data?.message };
+      const errorMessage = err.response?.data?.message || 'Profile update failed';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     }
   };
 
@@ -86,9 +92,10 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    setUser, // Add setUser to the context
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}; 
+};
