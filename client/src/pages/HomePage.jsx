@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { productService } from '../services/api';
 import { useCart } from '../hooks/useCart.jsx';
+import { Link } from 'react-router-dom';
 
 const sortOptions = [
   { value: '', label: 'Default' },
@@ -156,6 +157,9 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f2027] via-[#2c5364] to-[#232526] px-0 py-12 relative">
+      <div className="absolute top-4 left-4">
+        <Link to="/" className="px-4 py-2 bg-white/80 text-blue-700 font-bold rounded-lg shadow hover:bg-blue-100 transition">Back to Landing Page</Link>
+      </div>
       <h1 className="text-4xl font-extrabold text-center mb-12 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 tracking-widest drop-shadow-lg font-mono">Welcome to Our Store</h1>
       
       {/* Search Bar */}
