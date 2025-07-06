@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { productService } from '../services/api';
 import { useCart } from '../hooks/useCart.jsx';
 
@@ -30,6 +30,7 @@ const HomePage = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
+  // Debounce search input
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
@@ -37,32 +38,30 @@ const HomePage = () => {
     return () => clearTimeout(handler);
   }, [search]);
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    loadProducts();
-    // eslint-disable-next-line
-  }, [selectedCategory, minPrice, maxPrice, inStock, discounted, sort, debouncedSearch]);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       const res = await productService.getAll({});
-      // fallback: extract unique categories from products if /categories endpoint not available
       const cats = Array.from(new Set((res.data.products || []).map(p => p.category)));
       setCategories(cats);
-      // Try to fetch from backend endpoint if available
+      
       try {
         const catRes = await productService.getCategories?.();
-        if (catRes?.data && Array.isArray(catRes.data)) setCategories(catRes.data);
-      } catch {}
-    } catch {}
-  };
+        if (catRes?.data && Array.isArray(catRes.data)) {
+          setCategories(catRes.data);
+        }
+      } catch (err) {
+        console.log('Categories endpoint not available, using extracted categories');
+      }
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    }
+  }, []);
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
+      
       const params = {};
       if (selectedCategory) params.category = selectedCategory;
       if (minPrice) params.minPrice = minPrice;
@@ -71,6 +70,7 @@ const HomePage = () => {
       if (discounted) params.discounted = true;
       if (sort) params.sort = sort;
       if (debouncedSearch) params.search = debouncedSearch;
+      
       const response = await productService.getAll(params);
       setProducts(response.data.products || []);
     } catch (err) {
@@ -79,9 +79,19 @@ const HomePage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory, minPrice, maxPrice, inStock, discounted, sort, debouncedSearch]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
 
   const handleAddToCart = async (productId) => {
+    if (addingToCart.has(productId)) return; // Prevent double clicks
+    
     setAddingToCart(prev => new Set(prev).add(productId));
     try {
       const result = await addToCart(productId, 1);
@@ -90,6 +100,9 @@ const HomePage = () => {
       } else {
         alert(result.error || 'Failed to add to cart');
       }
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      alert('Failed to add to cart');
     } finally {
       setAddingToCart(prev => {
         const newSet = new Set(prev);
@@ -101,6 +114,16 @@ const HomePage = () => {
 
   const handleImageError = (e) => {
     e.target.src = 'https://via.placeholder.com/300x200?text=No+Image';
+  };
+
+  const resetFilters = () => {
+    setSelectedCategory('');
+    setMinPrice('');
+    setMaxPrice('');
+    setInStock(false);
+    setDiscounted(false);
+    setSort('');
+    setSearch('');
   };
 
   if (loading) {
@@ -122,7 +145,7 @@ const HomePage = () => {
           <p className="text-sm">{error}</p>
           <button 
             onClick={loadProducts}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
           >
             Try Again
           </button>
@@ -134,6 +157,7 @@ const HomePage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f2027] via-[#2c5364] to-[#232526] px-0 py-12 relative">
       <h1 className="text-4xl font-extrabold text-center mb-12 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 tracking-widest drop-shadow-lg font-mono">Welcome to Our Store</h1>
+      
       {/* Search Bar */}
       <div className="flex justify-center mb-10">
         <div className="relative w-full max-w-xl">
@@ -149,6 +173,7 @@ const HomePage = () => {
           </span>
         </div>
       </div>
+      
       <div className="flex gap-8 max-w-8xl mx-auto mt-0">
         {/* Sidebar Filter Panel */}
         <aside className="h-fit min-w-[320px] max-w-xs bg-white/10 backdrop-blur-2xl rounded-3xl shadow-2xl border-4 border-cyan-400/40 neon-glow p-8 glass-card animate-float flex flex-col gap-6 self-start mt-0">
@@ -166,6 +191,7 @@ const HomePage = () => {
               ))}
             </select>
           </div>
+          
           <div className="flex flex-col items-start min-w-[140px]">
             <label className="block text-xs font-bold mb-1 text-cyan-300 flex items-center gap-1">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 7h18M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2m-2 0v2a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V7"/></svg> Category
@@ -181,6 +207,7 @@ const HomePage = () => {
               ))}
             </select>
           </div>
+          
           <div className="flex flex-col items-start min-w-[100px]">
             <label className="block text-xs font-bold mb-1 text-green-300 flex items-center gap-1">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 8v4l3 3"/></svg> Min Price
@@ -193,6 +220,7 @@ const HomePage = () => {
               min="0"
             />
           </div>
+          
           <div className="flex flex-col items-start min-w-[100px]">
             <label className="block text-xs font-bold mb-1 text-pink-300 flex items-center gap-1">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 16V12l-3-3"/></svg> Max Price
@@ -205,6 +233,7 @@ const HomePage = () => {
               min="0"
             />
           </div>
+          
           <div className="flex items-center gap-2 min-w-[110px]">
             <input
               type="checkbox"
@@ -217,6 +246,7 @@ const HomePage = () => {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/></svg> In Stock
             </label>
           </div>
+          
           <div className="flex items-center gap-2 min-w-[120px]">
             <input
               type="checkbox"
@@ -229,20 +259,15 @@ const HomePage = () => {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="2" rx="1"/><rect x="11" y="3" width="2" height="18" rx="1"/></svg> Discounted
             </label>
           </div>
+          
           <button
+            onClick={resetFilters}
             className="mt-4 px-6 py-2 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-white font-extrabold rounded-2xl shadow-xl neon-glow hover:from-cyan-500 hover:to-pink-500 transition-all animate-pulse"
-            onClick={() => {
-              setSelectedCategory('');
-              setMinPrice('');
-              setMaxPrice('');
-              setInStock(false);
-              setDiscounted(false);
-              setSort('');
-            }}
           >
             Reset
           </button>
         </aside>
+        
         {/* Product Grid */}
         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10 mt-0">
           {products.map((product) => {
@@ -295,10 +320,11 @@ const HomePage = () => {
             );
           })}
         </div>
-        {products.length === 0 && (
+        
+        {products.length === 0 && !loading && (
           <div className="text-center text-cyan-200 mt-16 animate-fade-in">
-            <p className="text-2xl font-mono font-bold">No products available at the moment.</p>
-            <p className="text-sm">Please check back later or contact an admin to add products.</p>
+            <p className="text-2xl font-mono font-bold">No products found.</p>
+            <p className="text-sm">Try adjusting your search or filters.</p>
           </div>
         )}
       </div>
@@ -306,4 +332,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage; 
+export default HomePage;

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 const CartPage = () => {
   const { cart, cartTotal, updateCartItem, removeFromCart, clearCart, loading, error } = useCart();
   const [updatingItems, setUpdatingItems] = useState(new Set());
+  const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
   const navigate = useNavigate();
 
   const handleQuantityChange = async (productId, newQuantity) => {
@@ -45,6 +46,12 @@ const CartPage = () => {
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
+      // Check if Razorpay is already loaded
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => resolve(true);
@@ -54,81 +61,102 @@ const CartPage = () => {
   };
 
   const handleCheckout = async () => {
-    const res = await loadRazorpayScript();
-    if (!res) {
-      alert('Razorpay SDK failed to load. Are you online?');
-      return;
-    }
+    if (isProcessingCheckout) return; // Prevent double clicks
+    
+    setIsProcessingCheckout(true);
+    
+    try {
+      const res = await loadRazorpayScript();
+      if (!res) {
+        alert('Razorpay SDK failed to load. Please check your internet connection and try again.');
+        return;
+      }
 
-    // Call backend to create order
-    const orderRes = await fetch('https://e-com-5-y30p.onrender.com/api/payment/create-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: cartTotal }) // cartTotal in rupees
-    });
-    const order = await orderRes.json();
+      // Call backend to create order
+      const orderRes = await fetch('https://e-com-5-y30p.onrender.com/api/payment/create-order', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ amount: cartTotal })
+      });
 
-    const options = {
-      key: import.meta.env.VITE_RAZORPAY_KEY_ID, // TODO: Replace with your Razorpay Key ID
-      amount: order.amount,
-      currency: order.currency,
-      name: 'E-Commerce Store',
-      description: 'Order Payment',
-      order_id: order.id,
-      handler: async function (response) {
-        // Payment was successful, now create the order in our database
-        try {
-          const orderData = {
-            items: cart.map(item => ({
-              product: item.product._id,
-              quantity: item.quantity,
-              price: item.product.price,
-            })),
-            shippingAddress: { // Using placeholder address for now
-              street: '308 Negra Arroyo Lane',
-              city: 'Albuquerque',
-              postalCode: '87104',
-              country: 'New Maxico',
-            },
-            paymentMethod: 'Razorpay',
-            paymentDetails: {
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
+      if (!orderRes.ok) {
+        throw new Error('Failed to create payment order');
+      }
+
+      const order = await orderRes.json();
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'E-Commerce Store',
+        description: 'Order Payment',
+        order_id: order.id,
+        handler: async function (response) {
+          try {
+            const orderData = {
+              items: cart.map(item => ({
+                product: item.product._id,
+                quantity: item.quantity,
+                price: item.product.price,
+              })),
+              shippingAddress: {
+                street: '308 Negra Arroyo Lane',
+                city: 'Albuquerque',
+                postalCode: '87104',
+                country: 'New Mexico',
+              },
+              paymentMethod: 'Razorpay',
+              paymentDetails: {
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+              }
+            };
+
+            const createOrderRes = await fetch('https://e-com-5-y30p.onrender.com/api/orders', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify(orderData),
+            });
+
+            if (createOrderRes.ok) {
+              const newOrder = await createOrderRes.json();
+              alert(`Payment successful! Order created with ID: ${newOrder._id}`);
+              await clearCart();
+              navigate('/profile', { replace: true });
+            } else {
+              const errorData = await createOrderRes.json();
+              alert(`Failed to create order: ${errorData.error || 'Unknown error'}`);
             }
-          };
-
-          const createOrderRes = await fetch('https://e-com-5-y30p.onrender.com/api/orders', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify(orderData),
-          });
-
-          if (createOrderRes.ok) {
-            const newOrder = await createOrderRes.json();
-            alert(`Payment successful! Order created with ID: ${newOrder._id}`);
-            clearCart();
-            navigate('/profile'); // Redirect to profile/orders page
-          } else {
-            const errorData = await createOrderRes.json();
-            alert(`Failed to create order: ${errorData.error || 'Unknown error'}`);
+          } catch (error) {
+            console.error('Error creating order:', error);
+            alert('An error occurred while creating your order. Please contact support.');
           }
-        } catch (error) {
-          console.error('Error creating order:', error);
-          alert('An error occurred while creating your order.');
-        }
-      },
-      prefill: {
-        // Optionally fill with user info
-      },
-      theme: { color: '#3399cc' }
-    };
+        },
+        modal: {
+          ondismiss: function() {
+            setIsProcessingCheckout(false);
+          }
+        },
+        prefill: {},
+        theme: { color: '#3399cc' }
+      };
 
-    const rzp = new window.Razorpay(options);
-    rzp.open();
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to initiate checkout. Please try again.');
+    } finally {
+      setIsProcessingCheckout(false);
+    }
   };
 
   if (loading) {
@@ -136,7 +164,8 @@ const CartPage = () => {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
         <div className="text-center py-8">
-          <p className="text-gray-500">Loading cart...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="text-gray-500 mt-2">Loading cart...</p>
         </div>
       </div>
     );
@@ -150,7 +179,7 @@ const CartPage = () => {
           <p className="text-gray-500 mb-4">Your cart is empty</p>
           <button 
             onClick={() => navigate('/')}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
           >
             Continue Shopping
           </button>
@@ -181,7 +210,7 @@ const CartPage = () => {
                   </div>
                   <button
                     onClick={() => handleRemoveItem(item._id)}
-                    className="ml-4 text-red-500 hover:text-red-700"
+                    className="ml-4 text-red-500 hover:text-red-700 transition-colors"
                   >
                     Remove
                   </button>
@@ -208,7 +237,7 @@ const CartPage = () => {
                   <button
                     onClick={() => handleQuantityChange(item.product._id, item.quantity - 1)}
                     disabled={isUpdating}
-                    className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+                    className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 transition-colors"
                   >
                     -
                   </button>
@@ -216,14 +245,14 @@ const CartPage = () => {
                   <button
                     onClick={() => handleQuantityChange(item.product._id, item.quantity + 1)}
                     disabled={isUpdating || item.quantity >= (item.product.stock || 0)}
-                    className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+                    className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 transition-colors"
                   >
                     +
                   </button>
                   <button
                     onClick={() => handleRemoveItem(item.product._id)}
                     disabled={isUpdating}
-                    className="ml-4 text-red-500 hover:text-red-700 disabled:opacity-50"
+                    className="ml-4 text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors"
                   >
                     Remove
                   </button>
@@ -234,14 +263,14 @@ const CartPage = () => {
           
           <button
             onClick={handleClearCart}
-            className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
           >
             Clear Cart
           </button>
         </div>
         
         <div className="lg:col-span-1">
-          <div className="border rounded-lg p-4">
+          <div className="border rounded-lg p-4 sticky top-4">
             <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
             <div className="space-y-2">
               <div className="flex justify-between">
@@ -260,9 +289,10 @@ const CartPage = () => {
             </div>
             <button 
               onClick={handleCheckout}
-              className="w-full mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              disabled={isProcessingCheckout || cart.length === 0}
+              className="w-full mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Proceed to Checkout
+              {isProcessingCheckout ? 'Processing...' : 'Proceed to Checkout'}
             </button>
           </div>
         </div>
@@ -271,4 +301,4 @@ const CartPage = () => {
   );
 };
 
-export default CartPage; 
+export default CartPage;
