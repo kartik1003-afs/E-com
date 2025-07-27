@@ -29,7 +29,7 @@ const LoginPage = () => {
     try {
       const result = await login(formData);
       if (result.success) {
-        navigate('/', { replace: true });
+        navigate('/home', { replace: true });
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -41,7 +41,10 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-blue-50 via-white to-blue-100">
+      <div className="w-full text-center py-8">
+        <h1 className="text-3xl font-extrabold text-blue-700">Cartify</h1>
+      </div>
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">

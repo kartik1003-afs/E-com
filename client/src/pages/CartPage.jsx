@@ -1,12 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../hooks/useCart.jsx';
+import { useAuth } from '../hooks/useAuth.jsx';
 import { useNavigate } from 'react-router-dom';
 
 const CartPage = () => {
-  const { cart, cartTotal, updateCartItem, removeFromCart, clearCart, loading, error } = useCart();
+  const { cart, cartTotal, originalTotal, totalDiscount, updateCartItem, removeFromCart, clearCart, loading, error } = useCart();
+  const { user } = useAuth();
   const [updatingItems, setUpdatingItems] = useState(new Set());
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
   const navigate = useNavigate();
+
+  // Fetch user profile to get shipping address
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await fetch('https://e-com-5-y30p.onrender.com/api/users/profile', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUserProfile(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+      }
+    };
+    
+    if (user) {
+      fetchUserProfile();
+    }
+  }, [user]);
 
   const handleQuantityChange = async (productId, newQuantity) => {
     if (newQuantity <= 0) {
@@ -92,7 +118,7 @@ const CartPage = () => {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: order.currency,
-        name: 'E-Commerce Store',
+        name: 'Cartify',
         description: 'Order Payment',
         order_id: order.id,
         handler: async function (response) {
@@ -103,11 +129,16 @@ const CartPage = () => {
                 quantity: item.quantity,
                 price: item.product.price,
               })),
-              shippingAddress: {
-                street: '308 Negra Arroyo Lane',
-                city: 'Albuquerque',
-                postalCode: '87104',
-                country: 'New Mexico',
+              shippingAddress: userProfile?.address ? {
+                street: userProfile.address.street || '',
+                city: userProfile.address.city || '',
+                postalCode: userProfile.address.zipCode || '',
+                country: userProfile.address.country || '',
+              } : {
+                street: 'Please update your shipping address in profile',
+                city: '',
+                postalCode: '',
+                country: '',
               },
               paymentMethod: 'Razorpay',
               paymentDetails: {
@@ -178,7 +209,7 @@ const CartPage = () => {
         <div className="text-center py-8">
           <p className="text-gray-500 mb-4">Your cart is empty</p>
           <button 
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/home')}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
           >
             Continue Shopping
@@ -230,7 +261,21 @@ const CartPage = () => {
                 />
                 <div className="flex-grow">
                   <h3 className="font-semibold">{item.product.name || 'No Name'}</h3>
-                  <p className="text-gray-600">₹{item.product.price || 0}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-green-600">
+                      ₹{((item.product.price * (1 - (item.product.discount || 0) / 100)) * item.quantity).toFixed(2)}
+                    </span>
+                    {item.product.discount > 0 && (
+                      <>
+                        <span className="text-gray-500 line-through">
+                          ₹{(item.product.price * item.quantity).toFixed(2)}
+                        </span>
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                          {item.product.discount}% OFF
+                        </span>
+                      </>
+                    )}
+                  </div>
                   <p className="text-sm text-gray-500">Stock: {item.product.stock || 0}</p>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -272,10 +317,32 @@ const CartPage = () => {
         <div className="lg:col-span-1">
           <div className="border rounded-lg p-4 sticky top-4">
             <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+            
+            {/* Shipping Address Section */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <h3 className="font-semibold text-sm mb-2">Shipping Address:</h3>
+              {userProfile?.address && userProfile.address.street ? (
+                <div className="text-sm text-gray-700">
+                  <p>{userProfile.address.street}</p>
+                  <p>{userProfile.address.city}, {userProfile.address.state} {userProfile.address.zipCode}</p>
+                  <p>{userProfile.address.country}</p>
+                </div>
+              ) : (
+                <div className="text-sm text-red-600">
+                  <p>⚠️ No shipping address found</p>
+                  <p>Please update your address in your profile</p>
+                </div>
+              )}
+            </div>
+            
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span>Subtotal:</span>
-                <span>₹{cartTotal.toFixed(2)}</span>
+                <span>₹{originalTotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Discount:</span>
+                <span>₹{totalDiscount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping:</span>
@@ -289,11 +356,16 @@ const CartPage = () => {
             </div>
             <button 
               onClick={handleCheckout}
-              disabled={isProcessingCheckout || cart.length === 0}
+              disabled={isProcessingCheckout || cart.length === 0 || !userProfile?.address?.street}
               className="w-full mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isProcessingCheckout ? 'Processing...' : 'Proceed to Checkout'}
+              {isProcessingCheckout ? 'Processing...' : !userProfile?.address?.street ? 'Update Address First' : 'Proceed to Checkout'}
             </button>
+            {!userProfile?.address?.street && (
+              <p className="text-xs text-red-600 mt-2 text-center">
+                Please update your shipping address in your profile before checkout
+              </p>
+            )}
           </div>
         </div>
       </div>

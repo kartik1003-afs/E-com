@@ -12,7 +12,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <Link to="/home" className="text-xl font-bold text-gray-800">
-            E-Commerce Store
+            Cartify
           </Link>
           
           <div className="flex items-center space-x-4">

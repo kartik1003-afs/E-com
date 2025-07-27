@@ -49,7 +49,7 @@ const LandingPage = () => {
       {/* Hero Section */}
       <section className="relative w-full flex flex-col items-center justify-center text-center py-20 px-4 bg-gradient-to-br from-blue-600 via-blue-400 to-blue-300 shadow-lg overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1515168833906-d2a3b82b1e2e?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center opacity-20 pointer-events-none" />
-        <h1 className="relative text-5xl md:text-6xl font-extrabold text-white drop-shadow-lg mb-4 animate-fade-in">Welcome to E-Com</h1>
+        <h1 className="relative text-5xl md:text-6xl font-extrabold text-white drop-shadow-lg mb-4 animate-fade-in">Welcome to Cartify</h1>
         <p className="relative text-xl md:text-2xl text-blue-100 mb-8 max-w-2xl mx-auto animate-fade-in delay-100">India's most trusted online marketplace for all your needs. Shop smart, shop secure, shop fast.</p>
         <div className="relative flex flex-col sm:flex-row gap-4 justify-center animate-fade-in delay-200">
           <Link to="/login">

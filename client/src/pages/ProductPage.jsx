@@ -71,7 +71,28 @@ const ProductPage = () => {
         
         <div>
           <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
-          <p className="text-2xl font-bold text-blue-600 mb-4">₹{product.price}</p>
+          <div className="mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl font-bold text-green-600">
+                ₹{(product.price * (1 - (product.discount || 0) / 100)).toFixed(2)}
+              </span>
+              {product.discount > 0 && (
+                <>
+                  <span className="text-xl text-gray-500 line-through">
+                    ₹{product.price}
+                  </span>
+                  <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
+                    {product.discount}% OFF
+                  </span>
+                </>
+              )}
+            </div>
+            {product.discount > 0 && (
+              <p className="text-sm text-gray-600 mt-1">
+                You save ₹{(product.price * (product.discount / 100)).toFixed(2)}
+              </p>
+            )}
+          </div>
           <p className="text-gray-600 mb-6">{product.description}</p>
           
           <div className="mb-6">

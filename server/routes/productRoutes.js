@@ -89,7 +89,7 @@ router.post('/', adminAuth, async (req, res) => {
 // Update product (admin only)
 router.patch('/:id', adminAuth, async (req, res) => {
   const updates = Object.keys(req.body);
-  const allowedUpdates = ['name', 'description', 'price', 'category', 'images', 'stock'];
+  const allowedUpdates = ['name', 'description', 'price', 'category', 'images', 'stock', 'discount'];
   const isValidOperation = updates.every(update => allowedUpdates.includes(update));
 
   if (!isValidOperation) {
@@ -113,7 +113,7 @@ router.patch('/:id', adminAuth, async (req, res) => {
 // Update product (admin only) - PUT method
 router.put('/:id', adminAuth, async (req, res) => {
   const updates = Object.keys(req.body);
-  const allowedUpdates = ['name', 'description', 'price', 'category', 'images', 'stock'];
+  const allowedUpdates = ['name', 'description', 'price', 'category', 'images', 'stock', 'discount'];
   const isValidOperation = updates.every(update => allowedUpdates.includes(update));
 
   if (!isValidOperation) {

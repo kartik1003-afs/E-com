@@ -112,13 +112,25 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  // Calculate cart totals with safety checks
+  // Calculate cart totals with safety checks and discount calculations
   const cartTotal = cart.reduce((total, item) => {
+    if (!item?.product || typeof item.product.price !== 'number' || typeof item.quantity !== 'number') {
+      return total;
+    }
+    const originalPrice = item.product.price;
+    const discount = item.product.discount || 0;
+    const discountedPrice = originalPrice * (1 - discount / 100);
+    return total + (discountedPrice * item.quantity);
+  }, 0);
+
+  const originalTotal = cart.reduce((total, item) => {
     if (!item?.product || typeof item.product.price !== 'number' || typeof item.quantity !== 'number') {
       return total;
     }
     return total + (item.product.price * item.quantity);
   }, 0);
+
+  const totalDiscount = originalTotal - cartTotal;
 
   const cartCount = cart.reduce((count, item) => {
     if (!item?.product || typeof item.quantity !== 'number') {
@@ -132,6 +144,8 @@ export const CartProvider = ({ children }) => {
     loading,
     error,
     cartTotal,
+    originalTotal,
+    totalDiscount,
     cartCount,
     addToCart,
     updateCartItem,

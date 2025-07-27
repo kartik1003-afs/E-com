@@ -158,7 +158,7 @@ const HomePage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f2027] via-[#2c5364] to-[#232526] px-0 py-12 relative">
       <div className="absolute top-4 left-4">
-        <Link to="/" className="px-4 py-2 bg-white/80 text-blue-700 font-bold rounded-lg shadow hover:bg-blue-100 transition">Back to Landing Page</Link>
+       <Link to="/" className="px-4 py-2 bg-white/80 text-blue-700 font-bold rounded-lg shadow hover:bg-blue-100 transition">Back to Landing Page</Link>
       </div>
       <h1 className="text-4xl font-extrabold text-center mb-12 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 tracking-widest drop-shadow-lg font-mono">Welcome to Our Store</h1>
       
@@ -278,25 +278,27 @@ const HomePage = () => {
             const isAdding = addingToCart.has(product._id);
             return (
               <div key={product._id} className="relative border-0 rounded-3xl p-5 shadow-2xl bg-white/10 backdrop-blur-2xl hover:scale-105 hover:shadow-neon transition-all duration-300 flex flex-col glass-card neon-border animate-float-card">
-                <div className="relative mb-4">
-                  <img 
-                    src={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/300x200?text=No+Image'} 
-                    alt={product.name} 
-                    className="w-full h-48 object-cover rounded-2xl border-4 border-cyan-400/40 shadow-lg neon-glow"
-                    onError={handleImageError}
-                  />
-                  {product.discount > 0 && (
-                    <span className="absolute top-2 left-2 bg-gradient-to-r from-pink-500 to-yellow-400 text-white text-xs font-extrabold px-4 py-1 rounded-full shadow-xl neon-glow animate-bounce">
-                      {product.discount}% OFF
-                    </span>
-                  )}
-                  {product.stock <= 0 && (
-                    <span className="absolute top-2 right-2 bg-red-700 text-white px-4 py-1 rounded-full text-xs font-extrabold shadow-xl neon-glow animate-pulse">
-                      Out of Stock
-                    </span>
-                  )}
-                </div>
-                <h3 className="text-lg font-extrabold mb-1 text-cyan-200 truncate font-mono tracking-wide drop-shadow">{product.name}</h3>
+                <Link to={`/product/${product._id}`} className="block group">
+                  <div className="relative mb-4">
+                    <img 
+                      src={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/300x200?text=No+Image'} 
+                      alt={product.name} 
+                      className="w-full h-48 object-cover rounded-2xl border-4 border-cyan-400/40 shadow-lg neon-glow group-hover:opacity-80 transition"
+                      onError={handleImageError}
+                    />
+                    {product.discount > 0 && (
+                      <span className="absolute top-2 left-2 bg-gradient-to-r from-pink-500 to-yellow-400 text-white text-xs font-extrabold px-4 py-1 rounded-full shadow-xl neon-glow animate-bounce">
+                        {product.discount}% OFF
+                      </span>
+                    )}
+                    {product.stock <= 0 && (
+                      <span className="absolute top-2 right-2 bg-red-700 text-white px-4 py-1 rounded-full text-xs font-extrabold shadow-xl neon-glow animate-pulse">
+                        Out of Stock
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-lg font-extrabold mb-1 text-cyan-200 truncate font-mono tracking-wide drop-shadow group-hover:underline">{product.name}</h3>
+                </Link>
                 <p className="text-gray-300 text-xs mb-2 line-clamp-2 min-h-[32px] font-mono">{product.description}</p>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-2xl font-extrabold text-zinc-700 drop-shadow">₹{product.price}</span>

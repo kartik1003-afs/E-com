@@ -14,7 +14,8 @@ const AdminDashboard = () => {
     price: '',
     category: '',
     images: [],
-    stock: ''
+    stock: '',
+    discount: ''
   });
   
   // Edit states
@@ -113,7 +114,8 @@ const AdminDashboard = () => {
           price: '',
           category: '',
           images: [],
-          stock: ''
+          stock: '',
+          discount: ''
         });
         // Refresh products list
         fetchProducts();
@@ -135,7 +137,8 @@ const AdminDashboard = () => {
       price: product.price,
       category: product.category,
       images: product.images || [],
-      stock: product.stock
+      stock: product.stock,
+      discount: product.discount
     });
     setShowEditProductModal(true);
   };
@@ -146,7 +149,7 @@ const AdminDashboard = () => {
     setProductUpdateError(null);
     try {
       // Only send allowed fields
-      const allowedFields = ['name', 'description', 'price', 'category', 'images', 'stock'];
+      const allowedFields = ['name', 'description', 'price', 'category', 'images', 'stock', 'discount'];
       const payload = {};
       allowedFields.forEach(field => {
         if (field === 'price') {
@@ -157,6 +160,8 @@ const AdminDashboard = () => {
           payload.images = Array.isArray(editingProduct.images)
             ? editingProduct.images
             : (editingProduct.images || '').split(',').map(url => url.trim()).filter(url => url);
+        } else if (field === 'discount') {
+          payload.discount = Number(editingProduct.discount);
         } else {
           payload[field] = editingProduct[field];
         }
@@ -376,6 +381,13 @@ const AdminDashboard = () => {
             required
           />
           <input
+            type="number"
+            placeholder="Discount (%) or blank"
+            value={newProduct.discount}
+            onChange={(e) => setNewProduct({...newProduct, discount: e.target.value})}
+            className="border p-2 rounded"
+          />
+          <input
             type="text"
             placeholder="Image URL (comma-separated for multiple images)"
             value={newProduct.images ? newProduct.images.join(', ') : ''}
@@ -408,6 +420,7 @@ const AdminDashboard = () => {
                 <th className="px-4 py-2 text-left">Name</th>
                 <th className="px-4 py-2 text-left">Category</th>
                 <th className="px-4 py-2 text-left">Price</th>
+                <th className="px-4 py-2 text-left">Discount</th>
                 <th className="px-4 py-2 text-left">Stock</th>
                 <th className="px-4 py-2 text-left">Actions</th>
               </tr>
@@ -418,6 +431,15 @@ const AdminDashboard = () => {
                   <td className="px-4 py-2">{product.name}</td>
                   <td className="px-4 py-2">{product.category}</td>
                   <td className="px-4 py-2">₹{product.price}</td>
+                  <td className="px-4 py-2">
+                    {product.discount > 0 ? (
+                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
+                        {product.discount}%
+                      </span>
+                    ) : (
+                      <span className="text-gray-500">-</span>
+                    )}
+                  </td>
                   <td className="px-4 py-2">{product.stock}</td>
                   <td className="px-4 py-2">
                     <button 
@@ -711,6 +733,13 @@ const AdminDashboard = () => {
                 onChange={(e) => setEditingProduct({...editingProduct, stock: e.target.value})}
                 className="border p-2 rounded w-full"
                 required
+              />
+              <input
+                type="number"
+                placeholder="Discount (%) or blank"
+                value={editingProduct.discount || ''}
+                onChange={(e) => setEditingProduct({...editingProduct, discount: e.target.value})}
+                className="border p-2 rounded w-full"
               />
               <input
                 type="text"

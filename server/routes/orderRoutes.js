@@ -20,7 +20,11 @@ router.post('/', auth, async (req, res) => {
       if (product.stock < item.quantity) {
         return res.status(400).json({ error: `Insufficient stock for ${product.name}` });
       }
-      totalAmount += product.price * item.quantity;
+      
+      // Calculate discounted price
+      const discount = product.discount || 0;
+      const discountedPrice = product.price * (1 - discount / 100);
+      totalAmount += discountedPrice * item.quantity;
       
       // Update product stock
       product.stock -= item.quantity;

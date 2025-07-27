@@ -5,7 +5,7 @@ const Footer = () => {
     <footer className="backdrop-blur-2xl bg-white/10 border-t border-cyan-400/30 shadow-2xl neon-glow-glass py-8">
       <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="text-center md:text-left">
-          <p className="font-extrabold text-2xl tracking-widest mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 drop-shadow-lg font-mono">E-Commerce Store</p>
+          <p className="text-center text-white text-lg font-bold bg-gradient-to-r from-blue-700 to-pink-400 drop-shadow-lg font-mono">Cartify</p>
           <p className="text-xs text-cyan-200">&copy; 2024 All rights reserved.</p>
           <p className="text-xs text-cyan-300 mt-1 opacity-80">Built with <span className="animate-pulse text-pink-400">❤️</span> by <span className="font-bold">Kartik</span></p>
         </div>
